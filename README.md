@@ -1,6 +1,11 @@
 # SimpleListingRails
 
-TODO: Write a gem description
+This gem provides easy listing objects for your ActiveRecord relations.
+
+## Why
+
+Usually application listings have are sortable, filterable and can be paginated.
+I need an easy straightforward way to write flexible filters and sortings for my app, so I created this gem.
 
 ## Installation
 
@@ -10,7 +15,7 @@ Add this line to your application's Gemfile:
 
 And then execute:
 
-    $ bundle
+    $ bundle install
 
 Or install it yourself as:
 
@@ -18,68 +23,121 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+### Minimal required code
 
-Consider we have following model:
+First of all you need to define a listing class. E.g.
 
 ```ruby
-class User < ActiveRecord::Base
-  #attributes: first_name, last_name, age, gender, email
+class UserListing < SimpleListing::Standard
 end
 ```
 
-Listing class for this model might look like this:
+and then use it in your controller with "perform" function:
 
 ```ruby
-class UsersListing < SimpleListing::Standard
-  sortable_by :age, :email #Adds sorting by two regular attributes
+def index
+  @users = UserListing(User.all, params).perform
+end
+```
 
-  #Adds sorting by specific key "full_name".
-  sort_by :full_name, lambda { |scope, direction, listing|
-                     scope.order("concat(first_name, last_name) #{direction}")
-                   }
+Now you can add some filters or sortings declaration to your class.
 
-  filterable_by :gender #Adds strict match filtering by one attribute
+### Filtering
 
-  #Adds filtering by email as custom behavior
+#### Simple "equal" filters
+
+You can add strict match filter to your listing class with only one line:
+
+```ruby
+class UserListing < SimpleListing::Standard
+  filterable_by :first_name, :last_name, :email
+end
+```
+
+`filterable_by` will perform "=" comparision with corresponding value in DB.
+
+#### Custom filters
+
+If you need your own custom filter with custom logic you can use `filter_by` function:
+
+```ruby
+class UserListing < SimpleListing::Standard
   filter_by :email, lambda { |scope, value, listing|
-                       scope.where("email LIKE ?", "%#{value}%")
-                     }
+    scope.where("email LIKE ?", "%#{value}")
+  }
+end
+```
 
-  #Adds filtering by salary as custom behavior with complex value. Consider "value" is {min: 10, max: 30} hash
+`filter_by` accepts filtering key and lambda-function with your own custom logic. As you see lambda accepts 3 arguments and MUST return a scope.
+
+Keep in mind that "value" parameter can be a hash, so you can create complex filters e.g.:
+
+```ruby
+class UserListing < SimpleListing::Standard
   filter_by :age, lambda { |scope, value, listing|
-                      scope.where("age > :min AND age < :max", value)
-                    }
+    scope.where("age > :min AND age < :max", value)
+  }
 end
 ```
 
-You can use listing class above in your controller:
+#### Filters configuration
+
+By default simple_listing pulls filters data from "params[:filters]".
+If you need to change params key you can do it so by calling "config" function
 
 ```ruby
-class UsersController < ApplicationController
-  def index
-    @users = UsersListing.new(User.all, params).perform
-  end
+class UserListing < SimpleListing::Standard
+  config filter_params_key: :my_filters
 end
 ```
 
-After that you can send request with following params params:
+In case you need completely different behavior you can override "filter_params" function in your listing class.
+
+See more details in source code.
+
+### Sorting
+
+#### Simple sorting by DB field
+
+You can add sortings to your listing class with only one line:
 
 ```ruby
-{
-  filters: {
-    age: {min: 10, max: 30},
-    email: 'alice',
-    gender: 'male'
-    }
-  sort_by: 'full_name',
-  sort_dir: 'desc',
-  page: 3,
-  per_page: 10
-}
+class UserListing < SimpleListing::Standard
+  sortable_by :first_name, :last_name, :email
+end
 ```
 
-and check out the results! ;)
+#### Custom sorting
+
+If you need your own custom sorting with custom logic you can use `sort_by` function:
+
+```ruby
+class UserListing < SimpleListing::Standard
+  sort_by :email, lambda { |scope, direction, listing|
+    scope.order("CONCAT(first_name, last_name) #{direction}")
+  }
+end
+```
+
+`sort_by` accepts sorting key and lambda-function with your own custom logic. As you see lambda accepts 3 arguments and MUST return a scope.
+
+#### Sorters configuration
+
+By default simple_listing pulls sorting data from "params[:sort_by]" and "params[:sort_dir]".
+If you need to change params keys you can do it so by calling "config" function
+
+```ruby
+class UserListing < SimpleListing::Standard
+  config sort_by_param_key: :sind, sort_direction_param_key: :sord
+end
+```
+
+See more details in source code.
+
+### Customizing your listings
+
+In rare case when you want to remove sorting or filtering ability from your listing
+you can always inherit from "SimpleListing::Base" class and include only modules you need.
 
 ## Contributing
 
@@ -88,3 +146,6 @@ and check out the results! ;)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create a new Pull Request
+
+
+

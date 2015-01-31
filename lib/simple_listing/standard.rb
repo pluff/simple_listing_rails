@@ -5,8 +5,7 @@ require "simple_listing/sortable"
 
 module SimpleListing
   class Standard < Base
-    include Sortable
-    include Paginatable
     include Filterable
+    include Sortable
   end
 end
