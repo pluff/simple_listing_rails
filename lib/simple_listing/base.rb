@@ -1,5 +1,11 @@
+require 'simple_listing/configurable'
+
 module SimpleListing
   class Base
+    include Configurable
+
+    delegate :config, to: :class
+
     attr_accessor :scope, :params
     private :scope=, :params=
 

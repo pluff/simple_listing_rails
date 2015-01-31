@@ -2,8 +2,6 @@ module SimpleListing
   module Filterable
     extend ActiveSupport::Concern
 
-    FILTERS_PARAM_KEY = :filters
-
     module ClassMethods
       attr_reader :filterable_keys
       attr_reader :filtering_handlers
@@ -21,14 +19,24 @@ module SimpleListing
       end
     end
 
+    included do
+      delegate :filtering_handlers, :filterable_keys, to: :class
+
+      config filter_params_key: :filters
+    end
+
     def perform
       super
-      apply_filters
+      apply_filters if should_be_filtered?
       scope
     end
 
     def filter_params
-      params[FILTERS_PARAM_KEY]
+      params[config[:filter_params_key]]
+    end
+
+    def should_be_filtered?
+      filter_params && filter_params.respond_to?(:each)
     end
 
     private
@@ -36,7 +44,7 @@ module SimpleListing
     def apply_filters
       filter_params.each do |key, value|
         guard("incorrect filter key '#{key}'") { filterable_by?(key) }
-        self.scope = if handler = self.class.filtering_handlers[key]
+        self.scope = if handler = filtering_handlers[key]
                        handler.call(scope, value, self)
                      else
                        scope.where(key => value)
@@ -45,7 +53,7 @@ module SimpleListing
     end
 
     def filterable_by?(key)
-      key.to_s.in? self.class.filterable_keys
+      key.to_s.in? filterable_keys
     end
   end
 end

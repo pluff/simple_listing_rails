@@ -1,21 +1,27 @@
 module SimpleListing
   module Paginatable
+    extend ActiveSupport::Concern
 
-    PAGE_KEY = :page
-    PER_PAGE_KEY = :per_page
+    included do
+      config page_param_key: :page, per_page_param_key: :per_page
+    end
 
     def perform
       super
-      apply_pagination
+      apply_pagination if should_be_paginated?
       scope
     end
 
     def page
-      params[PAGE_KEY]
+      params[config[:page_param_key]]
     end
 
     def per_page
-      params[PER_PAGE_KEY]
+      params[config[:per_page_param_key]]
+    end
+
+    def should_be_paginated?
+      page && per_page
     end
 
     private

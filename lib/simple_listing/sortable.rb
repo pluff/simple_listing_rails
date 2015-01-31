@@ -2,9 +2,6 @@ module SimpleListing
   module Sortable
     extend ActiveSupport::Concern
 
-    SORT_VALUE_KEY = :sort_by
-    SORT_DIRECTION_KEY = :sort_dir
-
     SORT_DIRECTIONS = %w{asc desc}.freeze
 
     module ClassMethods
@@ -24,21 +21,27 @@ module SimpleListing
       end
     end
 
+    included do
+      delegate :sorting_handlers, :sortable_keys, to: :class
+
+      config sort_by_param_key: :sort_by, sort_direction_param_key: :sort_dir
+    end
+
     def perform
       super
-      apply_sorting
+      apply_sorting if should_be_sorted?
       scope
     end
 
     def sort_value
-      @sort_value ||= params[SORT_VALUE_KEY].tap do |value|
+      @sort_value ||= params[config[:sort_by_param_key]].tap do |value|
         guard("incorrect sorting value '#{value}'") { sortable_by?(value) }
       end
     end
 
     def sort_direction
       @sort_direction ||= begin
-        direction = params[SORT_DIRECTION_KEY]
+        direction = params[config[:sort_direction_param_key]]
         guard("incorrect sorting direction '#{direction}'") { direction.in? SORT_DIRECTIONS }
         direction.to_sym
       end
@@ -48,10 +51,14 @@ module SimpleListing
       sort_direction == :asc ? :desc : :asc
     end
 
+    def should_be_sorted?
+      params[config[:sort_by_param_key]] && params[config[:sort_direction_param_key]]
+    end
+
     private
 
     def apply_sorting
-      self.scope = if handler = self.class.sorting_handlers[sort_value]
+      self.scope = if handler = sorting_handlers[sort_value]
                      handler.call(scope, sort_direction, self)
                    else
                      scope.order(sort_value => sort_direction)
@@ -59,7 +66,7 @@ module SimpleListing
     end
 
     def sortable_by?(value)
-      self.class.sortable_keys.include? value
+      sortable_keys.include? value
     end
   end
 end

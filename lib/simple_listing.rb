@@ -1,3 +1,4 @@
+require "simple_listing/configurable"
 require "simple_listing/base"
 require "simple_listing/filterable"
 require "simple_listing/paginatable"
