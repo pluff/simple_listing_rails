@@ -1,3 +1,5 @@
+require 'active_support/concern'
+
 module SimpleListing
   module Sortable
     extend ActiveSupport::Concern

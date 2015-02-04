@@ -1,3 +1,5 @@
+require 'active_support/concern'
+
 module SimpleListing
   module Paginatable
     extend ActiveSupport::Concern

@@ -1,3 +1,5 @@
+require 'active_support/concern'
+
 module SimpleListing
   module Filterable
     extend ActiveSupport::Concern

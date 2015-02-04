@@ -1,3 +1,6 @@
+require 'active_support/concern'
+require 'active_support/core_ext'
+
 module SimpleListing
   module Configurable
     extend ActiveSupport::Concern
@@ -11,6 +14,7 @@ module SimpleListing
 
     included do
       class_attribute :configuration
+      private_class_method :configuration, :configuration=, :configuration?
       self.configuration = {}
     end
   end
